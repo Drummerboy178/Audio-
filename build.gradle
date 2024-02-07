@@ -1,8 +1,134 @@
 plugins {
-    alias libs.plugins.agp apply false
-    alias libs.plugins.kotlin apply false
+    alias libs.plugins.agp
+    alias libs.plugins.kotlin
+    alias libs.plugins.ksp
 }
 
-tasks.register('clean', Delete) {
-    delete rootProject.layout.buildDirectory
+android {
+    namespace 'com.parseus.codecinfo'
+    compileSdk 34
+    defaultConfig {
+        applicationId "com.parseus.codecinfo"
+        minSdkVersion 21
+        targetSdkVersion 34
+        versionCode 25
+        versionName "2.6.0"
+        resConfigs 'en'
+    }
+    buildTypes {
+        debug {
+            versionNameSuffix "-dev"
+            if (!gradle.startParameter.taskNames.toString().contains('StandardTv')) {
+                multiDexEnabled true
+            }
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            packagingOptions {
+                resources.excludes += "DebugProbesKt.bin"
+            }
+        }
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+
+    flavorDimensions = ["app", "platform"]
+
+    productFlavors {
+        nonFree {
+            dimension "app"
+
+            dependenciesInfo {
+                includeInApk = false
+            }
+        }
+
+        standard {
+            dimension "app"
+
+            dependenciesInfo {
+                includeInApk = false
+            }
+        }
+
+        mobile {
+            dimension "platform"
+            versionCode 10000 + android.defaultConfig.versionCode
+        }
+
+        tv {
+            dimension "platform"
+            versionCode 20000 + android.defaultConfig.versionCode
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    kotlin {
+        jvmToolchain(11)
+    }
+    packagingOptions {
+        jniLibs {
+            excludes += ['kotlin/**']
+        }
+        resources {
+            excludes += ['kotlin/**', '**/*.kotlin_metadata', 'META-INF/*.kotlin_module',
+                         'META-INF/*.version']
+        }
+    }
+
+    variantFilter { variant ->
+        def names = variant.flavors*.name
+        if (names.contains("nonFree") && names.contains("tv")) {
+            setIgnore(true)
+        }
+    }
+}
+
+configurations {
+    nonFreeMobileImplementation {}
+    standardMobileImplementation {}
+}
+
+dependencies {
+    implementation libs.coroutines
+
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.core
+    implementation libs.androidx.fragment
+    implementation libs.androidx.preference
+    implementation libs.androidx.recyclerview
+
+    implementation libs.plumber.android
+    implementation libs.moshi
+    ksp libs.moshi.codegen
+    implementation libs.okio
+
+    debugImplementation libs.leakcanary.android
+
+    tvImplementation libs.androidx.leanback
+    tvImplementation libs.androidx.leanback.preference
+
+    standardMobileImplementation libs.hiddenapibypass
+
+    mobileImplementation libs.androidx.constraintlayout
+    mobileImplementation libs.androidx.core.splashscreen
+    mobileImplementation libs.androidx.palette
+    mobileImplementation libs.androidx.webkit
+    mobileImplementation libs.monetcompat
+    mobileImplementation libs.licenser
+    mobileImplementation libs.material
+
+    nonFreeMobileImplementation libs.app.update
+    nonFreeMobileImplementation libs.app.update.ktx
+    nonFreeMobileImplementation libs.review
+    nonFreeMobileImplementation libs.review.ktx
 }
